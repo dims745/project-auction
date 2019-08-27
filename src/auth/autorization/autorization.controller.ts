@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Response } from '@nestjs/common';
+import { Controller, Get, Post, Body, Response, UseGuards } from '@nestjs/common';
 import { readFileSync } from 'fs';
 import { LoginUserDto } from 'src/DTO/loginUserDto';
 import { AutorizationService } from './autorization.service';
 import { AddUserDto } from 'src/DTO/addUserDto';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('login')
 export class AutorizationController {
@@ -14,6 +15,7 @@ export class AutorizationController {
         return file;
     }
 
+    @UseGuards(AuthGuard('local'))
     @Post()
     async checkLogin(@Body() loginUser: LoginUserDto, @Response() res) {
         const user = await this.authService.checkUser(loginUser);
