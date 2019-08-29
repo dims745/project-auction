@@ -1,13 +1,21 @@
-import { Controller, Get, Response } from '@nestjs/common';
+import { Controller, Get, Response, Request } from '@nestjs/common';
 import { AppService } from './app.service';
+import { AutorizationService } from './auth/autorization/autorization.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly appService: AppService,
+              private readonly authService: AutorizationService) {}
   @Get()
-  showPriv() {
-    return 'priv';
+  async showPriv(@Request() req) {
+    const name = await this.authService.checkJwt(req.header.Authentication);
+    if (name) {
+      return 'privet' + name.login;
+    } else {
+      return 'error of authentication';
+    }
   }
+
   @Get('/add')
   insertEntity() {
     const t = this.appService.inputData();

@@ -1,2 +1,2 @@
-const string = 'password';
-export const secretKey = string;
+const string2 = 'password';
+export const secretKey = string2;

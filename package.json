@@ -31,6 +31,7 @@
     "email-validator": "^2.0.4",
     "md5": "^2.2.1",
     "md5-es": "^1.8.2",
+    "nodemailer": "^6.3.0",
     "passport": "^0.4.0",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
