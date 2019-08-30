@@ -5,10 +5,14 @@ import { User } from 'src/entity/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as nodemailer from 'nodemailer';
 import * as EmailValidator from 'email-validator';
+import { UnverifiedUser } from 'src/entity/unverifiedUser.entity';
+import md5 from 'md5-es';
 
 @Injectable()
 export class AutorizationService {
   constructor(
+      @InjectRepository(UnverifiedUser)
+      private readonly unverifiedUserRepository: Repository<UnverifiedUser>,
       @InjectRepository(User)
       private readonly userRepository: Repository<User>,
       private readonly jwtService: JwtService,
@@ -51,28 +55,30 @@ export class AutorizationService {
     if (req.password1 !== req.password2) {
         return 'passwords are different';
     }
-    const result = await this.userRepository.findOne({email: req.email});
+    const result = await this.userRepository.findOne({email: req.email}) || await this.unverifiedUserRepository.findOne({email: req.email});
     if (result) {
         return 'this email are busy';
     } else { return false; }
 }
 
   async addUser(userInfo) {
-      const user = new User();
+      const id = await this.unverifiedUserRepository.count();
+      const user = new UnverifiedUser();
       user.firstName = userInfo.firstName;
       user.lastName = userInfo.lastName;
       user.birthDate = userInfo.birthDate;
       user.email = userInfo.email;
       user.phone = userInfo.phone;
       user.password = userInfo.password;
-      user.verified = false;
-      const res = await this.userRepository.save(user)
+      user.verifiedString = await md5.hash('userIdforHash' + id.toString());
+      user.timeToClear = new Date().getTime() + 24 * 1000 * 3600;
+      const res = await this.unverifiedUserRepository.save(user)
         .then((result) => result)
         .catch((err) => undefined);
       return res;
   }
 
-  async sendLetterVerify(user, message) {
+  async sendLetter(email, message) {
     const transporter = await nodemailer.createTransport(
       {
         host: 'smtp.gmail.com',
@@ -85,10 +91,23 @@ export class AutorizationService {
       });
     const mailOptions = {
       from: 'sender@gmail.com',
-      to: user.email,
-      subject: 'Verification Link',
-      html: `<a href='localhost:3000/login/registration/verify?key=${message}'>link</a>`,
+      to: email,
+      subject: 'Auction Service',
+      html: message,
     };
     return await transporter.sendMail(mailOptions).then((result) => true).catch(() => false);
+  }
+
+  async makeVerify(key) {
+    const user = await this.unverifiedUserRepository.findOne({verifiedString: key});
+    const newUser = new User();
+    newUser.firstName = user.firstName;
+    newUser.lastName = user.lastName;
+    newUser.birthDate = user.birthDate;
+    newUser.email = user.email;
+    newUser.phone = user.phone;
+    newUser.password = user.password;
+    await this.unverifiedUserRepository.remove(user);
+    return await this.userRepository.save(newUser);
   }
 }

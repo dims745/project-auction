@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { AutorizationService } from './auth/autorization/autorization.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/entity/user.entity';
+import { UnverifiedUser } from 'src/entity/unverifiedUser.entity';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './constants';
@@ -25,6 +26,7 @@ import { jwtConstants } from './constants';
       signOptions: { expiresIn: '60s' },
     }),
     TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([UnverifiedUser]),
     AuthModule,
   ],
   controllers: [AppController],

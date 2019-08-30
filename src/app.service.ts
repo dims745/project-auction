@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from 'src/entity/user.entity';
+import { UnverifiedUser } from 'src/entity/unverifiedUser.entity';
 
 @Injectable()
 export class AppService {
 
   constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    @InjectRepository(UnverifiedUser)
+    private readonly userRepository: Repository<UnverifiedUser>,
   ) {}
 
   async showData() {
@@ -16,14 +16,13 @@ export class AppService {
   }
 
   async inputData() {
-    const user = new User();
+    const user = new UnverifiedUser();
     user.firstName = 'vasya';
     user.lastName = 'petrov';
     user.birthDate = '22-22-2222';
     user.email = '33334gtfe';
     user.phone = 'ergerv';
     user.password = 'hard';
-    user.verified = false;
     return await this.userRepository.save(user);
   }
 

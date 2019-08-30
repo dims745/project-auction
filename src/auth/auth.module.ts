@@ -5,10 +5,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/entity/user.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from '../constants';
+import { UnverifiedUser } from 'src/entity/unverifiedUser.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([UnverifiedUser]),
     JwtModule.register({
       secret: jwtConstants.secret,
       signOptions: { expiresIn: '24h' },
