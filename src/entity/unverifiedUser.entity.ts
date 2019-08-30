@@ -26,6 +26,6 @@ export class UnverifiedUser {
     @Column()
     verifiedString: string;
 
-    @Column()
+    @Column('bigint')
     timeToClear: number;
 }

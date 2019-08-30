@@ -7,6 +7,7 @@ import * as nodemailer from 'nodemailer';
 import * as EmailValidator from 'email-validator';
 import { UnverifiedUser } from 'src/entity/unverifiedUser.entity';
 import md5 from 'md5-es';
+import * as passGenerate from 'password-generator';
 
 @Injectable()
 export class AutorizationService {
@@ -19,9 +20,10 @@ export class AutorizationService {
     ) {}
 
   async checkUser(loginUser) {
+      const password = await md5.hash(loginUser.password);
       const user = await this.userRepository.findOne({
         email: loginUser.login,
-        password: loginUser.password});
+        password});
       return user;
   }
 
@@ -39,7 +41,7 @@ export class AutorizationService {
   }
 
   async validateDataUser(req) {
-    const re = /^\d[\d\(\)\ -]{4,14}\d$/;
+    const phoneString = /^\d[\d\(\)\ -]{4,14}\d$/;
     const date = new Date().toISOString().slice(0, 10);
     const dat = (+date.slice(0, 4) - 21) + date.slice(4, 10);
 
@@ -49,8 +51,8 @@ export class AutorizationService {
     if (dat < req.birthDate) {
         return 'You are under 21 years old. Come back when you get older';
     }
-    if (!re.test(req.phone)) {
-        return 'you phone nubmer is incorrect (example 3809990990665)';
+    if (!phoneString.test(req.phone)) {
+        return 'you phone nubmer is incorrect (example 380999066065)';
     }
     if (req.password1 !== req.password2) {
         return 'passwords are different';
@@ -69,11 +71,12 @@ export class AutorizationService {
       user.birthDate = userInfo.birthDate;
       user.email = userInfo.email;
       user.phone = userInfo.phone;
-      user.password = userInfo.password;
+      user.password = await md5.hash(userInfo.password);
       user.verifiedString = await md5.hash('userIdforHash' + id.toString());
       user.timeToClear = new Date().getTime() + 24 * 1000 * 3600;
+
       const res = await this.unverifiedUserRepository.save(user)
-        .then((result) => result)
+        .then((result) => user.verifiedString)
         .catch((err) => undefined);
       return res;
   }
@@ -85,12 +88,12 @@ export class AutorizationService {
         port: 465,
         secure: true,
         auth: {
-          user: 'sender@gmail.com',
-          pass: 'password',
+          user: 'dimatimoshen@gmail.com',
+          pass: '',
         },
       });
     const mailOptions = {
-      from: 'sender@gmail.com',
+      from: 'dimchek <dimatimoshen@gmail.com>',
       to: email,
       subject: 'Auction Service',
       html: message,
@@ -100,14 +103,35 @@ export class AutorizationService {
 
   async makeVerify(key) {
     const user = await this.unverifiedUserRepository.findOne({verifiedString: key});
-    const newUser = new User();
-    newUser.firstName = user.firstName;
-    newUser.lastName = user.lastName;
-    newUser.birthDate = user.birthDate;
-    newUser.email = user.email;
-    newUser.phone = user.phone;
-    newUser.password = user.password;
-    await this.unverifiedUserRepository.remove(user);
-    return await this.userRepository.save(newUser);
+    if (user) {
+      const newUser = new User();
+      newUser.firstName = user.firstName;
+      newUser.lastName = user.lastName;
+      newUser.birthDate = user.birthDate;
+      newUser.email = user.email;
+      newUser.phone = user.phone;
+      newUser.password = user.password;
+      await this.unverifiedUserRepository.remove(user);
+      return await this.userRepository.save(newUser);
+    } else { return false; }
+  }
+
+  async createReset(email) {
+    const user = await this.userRepository.findOne({email});
+    if (!user) {return false; }
+    return {hash: await md5.hash('string for security of reset' + user.id + new Date().getDay()), user};
+  }
+
+  async resetPass(email, key) {
+    const user = await this.userRepository.findOne({email});
+    const hash = await md5.hash('string for security of reset' + user.id + new Date().getDay());
+    if (key !== hash) {
+      return false;
+    } else {
+      const pass = await passGenerate();
+      user.password = await md5.hash(pass);
+      await this.userRepository.save(user);
+      return pass;
+    }
   }
 }
